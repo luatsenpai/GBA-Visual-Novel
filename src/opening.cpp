@@ -1,101 +1,101 @@
 
 
 #include "opening.h"
-void run_opening()
+
+namespace vn
 {
-        // Initialize text generator
-    bn::sprite_text_generator text_generator(common::variable_8x16_sprite_font);
-    text_generator.set_left_alignment();
-
-        // Set up store background
-    bn::regular_bg_ptr store_bg = bn::regular_bg_items::bg1.create_bg(0, 0);
-
-        // Text display variables
-    bn::vector<bn::sprite_ptr, 128> text_sprites;
-    int text_index = 0;
-    bool showing_choices = false;
-    int selected_choice = 0;
-
-        // Text sequence
-    constexpr bn::string_view dialogue[] = {
-        "Hello",
-        "How are you?"
-    };
-
-        // Choices
-    constexpr bn::string_view choices[] = {
-        "I'm good",
-        "I can't complain too much"
-    };
-
-        // Responses based on choice
-    constexpr bn::string_view responses[] = {
-        "Really? Goodddd.",
-        "Well? Not good."
-    };
-
-    while(true)
+    OpeningScene::OpeningScene() :
+        bg(bn::regular_bg_items::bg1.create_bg(0, 0)),
+        text_generator(common::variable_8x16_sprite_font),
+        selected_choice(0)
     {
-        if(!showing_choices)
+        text_generator.set_left_alignment();
+    }
+
+    void OpeningScene::display_text(const bn::string_view& text)
+    {
+        clear_text();
+        text_generator.generate(-100, 50, text, text_sprites);
+    }
+
+    void OpeningScene::clear_text()
+    {
+        text_sprites.clear();
+    }
+
+    void OpeningScene::show_choices()
+    {
+        clear_text();
+        text_generator.set_left_alignment();
+        bn::string_view choices[] = {"I'm good", "I can't complain too much"};
+        for(int i = 0; i < 2; ++i)
         {
-            if(text_index < 2 && bn::keypad::a_pressed())
+            bn::string<32> choice_text;
+            choice_text = i == selected_choice ? "> " : "  ";
+            choice_text += choices[i];
+            text_generator.generate(20, 100 + i * 20, choice_text, text_sprites);
+        }
+    }
+
+    void OpeningScene::update_choices()
+    {
+        if(bn::keypad::up_pressed() && selected_choice > 0)
+        {
+            --selected_choice;
+            show_choices();
+        }
+        else if(bn::keypad::down_pressed() && selected_choice < 1)
+        {
+            ++selected_choice;
+            show_choices();
+        }
+    }
+
+    void OpeningScene::run()
+    {
+        // Display "Hello"
+        display_text("Hello");
+        while(!bn::keypad::a_pressed())
+        {
+            bn::core::update();
+        }
+        bn::core::update(); // Debounce A press
+
+        // Display "How are you?"
+        display_text("How are you?");
+        while(!bn::keypad::a_pressed())
+        {
+            bn::core::update();
+        }
+        bn::core::update(); // Debounce A press
+
+        // Show choices
+        show_choices();
+        while(true)
+        {
+            update_choices();
+            if(bn::keypad::a_pressed())
             {
-                    // Clear previous text
-                text_sprites.clear();
-
-                    // Display current dialogue
-                text_generator.generate(10, 100, dialogue[text_index], text_sprites);
-                text_index++;
-
-                if(text_index == 2)
-                {
-                        // Prepare to show choices
-                    showing_choices = true;
-                    text_sprites.clear();
-                    selected_choice = 0;
-                }
+                break;
             }
+            bn::core::update();
+        }
+        bn::core::update(); // Debounce A press
+
+        // Display response based on choice
+        if(selected_choice == 0)
+        {
+            display_text("Really? Goodddd.");
         }
         else
         {
-                // Handle choice selection
-            if(bn::keypad::up_pressed() && selected_choice > 0)
-            {
-                selected_choice--;
-            }
-			if(bn::keypad::down_pressed() && selected_choice < 1)
-            {
-                selected_choice++;
-            }
-
-                // Display choices with cursor
-            text_sprites.clear();
-            for(int i = 0; i < 2; ++i)
-            {
-                    // Construct choice text with appropriate prefix
-                bn::string<32> choice_text(i == selected_choice ? "> " : "  ");
-                choice_text.append(choices[i]);
-                text_generator.generate(10, 100 + i * 16, choice_text, text_sprites);
-            }
-
-                // Confirm choice
-            if(bn::keypad::a_pressed())
-            {
-                    // Clear choices
-                text_sprites.clear();
-
-                    // Display response based on choice
-                text_generator.generate(10, 100, responses[selected_choice], text_sprites);
-
-                    // Exit after showing response (for simplicity)
-                while(!bn::keypad::a_pressed())
-                {
-                    bn::core::update();
-                }
-                break;
-            }
+            display_text("Well? Not good.");
         }
 
-        bn::core::update();
+        // Wait for final A press to end scene
+        while(!bn::keypad::a_pressed())
+        {
+            bn::core::update();
+        }
     }
 }
