@@ -15,25 +15,6 @@
 #ifndef OPENING_H
 #define OPENING_H
 
-namespace vn
-{
-    class OpeningScene
-    {
-    public:
-        OpeningScene();
-        void run();
-
-    private:
-        bn::regular_bg_ptr bg;
-        bn::sprite_text_generator text_generator;
-        bn::vector<bn::sprite_ptr, 32> text_sprites;
-        int selected_choice;
-
-        void display_text(const bn::string_view& text);
-        void clear_text();
-        void show_choices();
-        void update_choices();
-    };
-}
+void run_opening();
 
 #endif
